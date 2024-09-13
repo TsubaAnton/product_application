@@ -138,14 +138,14 @@
                 .then(() => {
                     form.reset();
                     errorMessages.textContent = '';
-                    fetchProducts();  // Refresh product list after successful addition
+                    fetchProducts();
                 })
                 .catch(error => {
                     console.error('Error:', error);
                 });
             });
 
-            fetchProducts();  // Load products on page load
+            fetchProducts();
         });
     </script>
 </body>
