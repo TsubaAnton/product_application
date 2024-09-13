@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product List</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin: 5px 0;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0 10px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Product List</h1>
+
+    <form id="productForm">
+        {% csrf_token %}
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" required>
+
+        <label for="description">Description:</label>
+        <textarea id="description" name="description" required></textarea>
+
+        <label for="price">Price:</label>
+        <input type="number" id="price" name="price" step="0.01" required>
+
+        <button type="submit">Submit</button>
+    </form>
+
+    <div id="errorMessages" class="error"></div>
+
+    <h2>Products</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Price</th>
+            </tr>
+        </thead>
+        <tbody id="productList">
+        </tbody>
+    </table>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const form = document.getElementById('productForm');
+            const productList = document.getElementById('productList');
+            const errorMessages = document.getElementById('errorMessages');
+
+            function fetchProducts() {
+                fetch('/products/')
+                    .then(response => response.json())
+                    .then(data => {
+                        productList.innerHTML = '';
+                        data.forEach(product => {
+                            const row = `<tr>
+                                <td>${product.name}</td>
+                                <td>${product.description}</td>
+                                <td>${product.price}</td>
+                            </tr>`;
+                            productList.innerHTML += row;
+                        });
+                    });
+            }
+
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const formData = new FormData(form);
+
+                fetch('/products/create/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                    },
+                    body: JSON.stringify({
+                        name: formData.get('name'),
+                        description: formData.get('description'),
+                        price: formData.get('price')
+                    })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        return response.json().then(data => {
+                            let errorMessagesText = '';
+                            for (const [field, errors] of Object.entries(data)) {
+                                errorMessagesText += `${field}: ${errors.join(', ')}\n`;
+                            }
+                            errorMessages.textContent = errorMessagesText;
+                            throw new Error('Invalid data');
+                        });
+                    }
+                })
+                .then(() => {
+                    form.reset();
+                    errorMessages.textContent = '';
+                    fetchProducts();  // Refresh product list after successful addition
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            });
+
+            fetchProducts();  // Load products on page load
+        });
+    </script>
+</body>
+</html>
